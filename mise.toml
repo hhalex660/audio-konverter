@@ -1,0 +1,18 @@
+[tools]
+rust = "1.100.0"
+
+[tasks.build]
+description = "Build the optimized application"
+run = "cargo build --release --locked"
+
+[tasks.test]
+description = "Run the Rust tests in release mode"
+run = "cargo test --release --locked"
+
+[tasks.check]
+description = "Check formatting and lint all Rust targets"
+run = ["cargo fmt --all -- --check", "cargo clippy --all-targets --locked -- -D warnings"]
+
+[tasks.run]
+description = "Run the optimized application"
+run = "cargo run --release --locked"

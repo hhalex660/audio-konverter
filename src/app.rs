@@ -109,8 +109,7 @@ fn anzeige(ordner: &Path, wurzel: &Path) -> String {
 
 fn dateiname(p: &Path) -> String {
     p.file_name()
-        .map(|n| n.to_string_lossy().to_string())
-        .unwrap_or_default()
+        .map_or_default(|n| n.to_string_lossy().to_string())
 }
 
 impl App {
@@ -346,9 +345,14 @@ mod tests {
     use crate::konverter::wandle;
 
     // Wie die Oberfläche: starten und Nachrichten abholen, bis der Lauf endet
-    fn durchlaufen(app: &mut App) {
+    fn durchlaufen(app: &mut App, zeitlimit: Option<std::time::Duration>) {
         app.starten(&egui::Context::default());
+        let start = std::time::Instant::now();
         while app.laeuft {
+            assert!(
+                zeitlimit.is_none_or(|limit| start.elapsed() < limit),
+                "Umwandlung läuft zu lange"
+            );
             std::thread::sleep(std::time::Duration::from_millis(10));
             app.nachrichten_verarbeiten();
         }
@@ -367,7 +371,7 @@ mod tests {
         app.ordner_hinzufuegen(o.clone());
         app.ziel_setzen(Ziel::Mp3);
         assert_eq!(app.anzahl_gewaehlt(), 2);
-        durchlaufen(&mut app);
+        durchlaufen(&mut app, Some(std::time::Duration::from_secs(30)));
 
         let fertig = app
             .dateien
@@ -423,7 +427,7 @@ mod tests {
             _ => {}
         }
         let start = std::time::Instant::now();
-        durchlaufen(&mut app);
+        durchlaufen(&mut app, None);
         for d in &app.dateien {
             if let Status::Fehler(e) = &d.status {
                 println!("Fehler: {}: {e}", d.pfad.display());

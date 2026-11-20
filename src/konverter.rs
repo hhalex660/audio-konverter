@@ -434,14 +434,28 @@ pub(crate) mod tests {
     use super::*;
     use std::path::PathBuf;
 
-    // Testordner im Temp-Verzeichnis (bleibt zur Kontrolle liegen)
-    pub fn ordner(name: &str) -> PathBuf {
-        let o = std::env::temp_dir()
-            .join("audio-konverter-tests")
-            .join(name);
-        let _ = std::fs::remove_dir_all(&o);
+    pub struct Testordner {
+        _temp: tempfile::TempDir,
+        pfad: PathBuf,
+    }
+
+    impl std::ops::Deref for Testordner {
+        type Target = PathBuf;
+
+        fn deref(&self) -> &Self::Target {
+            &self.pfad
+        }
+    }
+
+    // Jeder Test bekommt einen eigenen Ordner, der beim Verlassen gelöscht wird.
+    pub fn ordner(name: &str) -> Testordner {
+        let temp = tempfile::tempdir().unwrap();
+        let o = temp.path().join(name);
         std::fs::create_dir_all(&o).unwrap();
-        o
+        Testordner {
+            _temp: temp,
+            pfad: o,
+        }
     }
 
     // Einfache PCM-WAV-Datei schreiben: Sinus 440 Hz, Stereo
@@ -495,7 +509,9 @@ pub(crate) mod tests {
                 b"COMM" => frames = u32::from_be_bytes(inhalt[2..6].try_into().unwrap()),
                 b"SSND" => {
                     pcm = inhalt[8..]
-                        .chunks_exact(2)
+                        .as_chunks::<2>()
+                        .0
+                        .iter()
                         .map(|b| i16::from_be_bytes([b[0], b[1]]))
                         .collect();
                 }
@@ -509,6 +525,22 @@ pub(crate) mod tests {
 
     fn nie_abbrechen() -> AtomicBool {
         AtomicBool::new(false)
+    }
+
+    #[test]
+    fn testordner_sind_auch_bei_gleichem_namen_getrennt() {
+        let erster = ordner("gleichzeitig");
+        std::fs::write(erster.join("original"), b"unveraendert").unwrap();
+        let zweiter = ordner("gleichzeitig");
+        assert_ne!(erster.join("original"), zweiter.join("original"));
+        assert_eq!(
+            std::fs::read(erster.join("original")).unwrap(),
+            b"unveraendert"
+        );
+        let pfad = erster.join("original");
+        drop(erster);
+        assert!(!pfad.exists());
+        assert!(zweiter.exists());
     }
 
     #[test]
@@ -526,6 +558,7 @@ pub(crate) mod tests {
         .unwrap();
         let (frames, pcm, _) = aiff_lesen(&o.join("a.aiff"));
         assert_eq!(frames as usize * 2, original.len());
+        assert_eq!(pcm.len(), original.len());
         assert!(pcm.iter().zip(&original).all(|(a, b)| i32::from(*a) == *b));
     }
 
@@ -561,6 +594,35 @@ pub(crate) mod tests {
         assert!(d.len() > 35_000, "nur {} Bytes", d.len());
         assert_eq!(d[0], 0xFF);
         assert_eq!(d[1] & 0xE0, 0xE0);
+
+        // Die Datei muss auch dekodierbares Audio mit der erwarteten Tonhöhe enthalten.
+        let mut mp3 = oeffne(&o.join("a.mp3")).unwrap();
+        assert_eq!((mp3.rate, mp3.kanaele), (44_100, 2));
+        let mut links = Vec::new();
+        dekodiere(&mut mp3, &nie_abbrechen(), |puffer| {
+            let mut samples = SampleBuffer::<f32>::new(puffer.capacity() as u64, *puffer.spec());
+            samples.copy_interleaved_ref(puffer);
+            links.extend(samples.samples().iter().step_by(2).copied());
+            Ok(())
+        })
+        .unwrap();
+        assert!(
+            (44_000..=47_000).contains(&links.len()),
+            "{} Frames",
+            links.len()
+        );
+        let max = links.iter().copied().fold(0.0_f32, |a, b| a.max(b.abs()));
+        assert!(max > 0.1, "MP3 ist stumm: {max}");
+        // Encoder-Padding am Anfang und Ende nicht als Ton interpretieren.
+        let mitte = &links[4_410..39_690];
+        let nullstellen = mitte
+            .windows(2)
+            .filter(|w| w[0] <= 0.0 && w[1] > 0.0)
+            .count();
+        assert!(
+            (345..=359).contains(&nullstellen),
+            "{nullstellen} Nullstellen"
+        );
     }
 
     #[test]

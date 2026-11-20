@@ -1,6 +1,6 @@
 # Plan: Release-Kette und Code-Prüfung
 
-Stand: Plan, noch nicht umgesetzt. Ziel: Bei jedem Release entstehen automatisch Windows-, macOS- und Linux-Versionen; Code-Prüfungen laufen lokal vor jedem Commit und auf GitHub bei jedem Push.
+Stand: Historischer Plan, teilweise umgesetzt. Der experimentelle Workflow „Build and release“ baut bei manueller Ausführung oder einem `v*`-Tag für Windows, Linux und macOS; die Pakete für Windows und macOS müssen noch auf GitHub und den Zielsystemen geprüft werden. Er nutzt Ubuntu 24.04 statt 22.04 und erstellt Releases aus vorhandenen Tags. CI läuft bei Pull Requests und Pushes auf `main`; semantic-release ist weiterhin nicht umgesetzt. Die folgenden Abschnitte beschreiben den ursprünglichen Plan, nicht den aktuellen Stand; siehe README für die tatsächliche Nutzung.
 
 ## Überblick
 

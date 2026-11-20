@@ -33,9 +33,29 @@ cd audio-konverter
 cargo run --release
 ```
 
-Always use `--release` for real conversions. Tests: `cargo test --release`. Standalone build: `cargo build --release`, result `target\release\audio-konverter.exe` (single file, no Rust, no installation needed). Without Rust on your PC: on GitHub under *Actions → Windows-Build → Run workflow*, the `.exe` is the download of the run; a tag like `v0.4.0` also creates a release.
+Always use `--release` for real conversions. Tests: `cargo test --release`. Standalone build: `cargo build --release`, result `target\release\audio-konverter.exe` (single file, no Rust, no installation needed). Without Rust on your PC: use the GitHub Actions build described below.
 
 Checks before committing: `prek install` (once), see `wiki/pruefungen.md`.
+
+### Development with mise
+
+[mise](https://mise.jdx.dev/getting-started.html) is optional for local development. It installs the project's pinned Rust toolchain using rustup; the platform's C compiler and native libraries are still required. From the project directory:
+
+```sh
+mise install
+mise run test   # Rust release tests
+mise run check  # formatting and Clippy
+mise run build  # optimized binary
+mise run run    # launch the app
+```
+
+`mise tasks` lists the available commands. GitHub Actions uses the same pinned Rust version and tasks. The release-version script tests additionally require Python 3.11 or newer: `python3 -m unittest discover -s tests`.
+
+## Cross-platform builds (experimental)
+
+GitHub Actions → **Build and release** → **Run workflow** builds Windows x64, Linux x64 and a universal macOS package. Download the artifacts from the run. Pushing a `v*` tag creates one GitHub release after all three builds succeed; the tag must match the version in `Cargo.toml`.
+
+Linux packages target Ubuntu 24.04 / Linux Mint 22 or newer, not Mint 21. The `.deb` installs dependencies; the `.tar.gz` is dynamically linked and needs desktop libraries and an XDG file-dialog portal. The macOS `.dmg` is not notarized and may be blocked by Gatekeeper. The macOS and Windows build workflows and packaged apps still need to be run and checked on those systems.
 
 ## Project structure
 
@@ -59,10 +79,6 @@ audio-konverter/
 │   └── bericht.rs    CSV log
 └── wiki/             features, decisions, review, diagrams (German)
 ```
-
-## Planned
-
-- Later macOS and Linux
 
 ## License
 

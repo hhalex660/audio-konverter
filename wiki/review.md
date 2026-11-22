@@ -32,7 +32,9 @@
 | A | Kein Ergebnis nach dem Lauf, „0 ausgewählt“ springt während des Laufs | behoben: Zusammenfassung, ruhige Statuszeile |
 | A | Viel Hilfetext in der Seitenleiste, „x“ als Buchstabe | behoben: Tooltips, Icon-Knöpfe |
 | B | Spalten sortieren und in der Breite ziehen, Suche/Filter | offen |
-| B | Einstellungen merken (Zielformat, Fenstergröße, letzte Ordner) | offen |
-| B | Zielordner nach dem Lauf öffnen, Programm-Icon für die .exe | offen |
+| B | Einstellungen merken (Zielformat, Fenstergröße, Thema, Startordner des Dialogs) | behoben: `einstellungen.rs`, beim Beenden gespeichert |
+| B | Zielordner nach dem Lauf öffnen | behoben: Knopf „Zielordner öffnen“ |
+| B | Programm-Icon für die .exe | behoben: `assets/icon.ico` per `build.rs` und `winres` eingebaut |
 | B | Ordner im Hintergrund durchsuchen (sehr große, langsame Laufwerke) | offen |
-| C | Themenwahl in der Oberfläche, Animationen | offen |
+| C | Themenwahl in der Oberfläche (System, Hell, Dunkel), Animationen | behoben: Auswahl oben rechts, weiche Übergänge |
+| C | Ordner in der Liste kaum unterscheidbar (Streifen in Hell unsichtbar) | behoben: eine Kopfzeile pro Ordner mit Dateianzahl, Ordner-Spalte entfällt |

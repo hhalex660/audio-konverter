@@ -63,7 +63,6 @@ mod tests {
             endung: "flac".into(),
             gewaehlt: true,
             status: Status::Fehler("kaputt\nZeile 2".into()),
-            gruppe_ungerade: false,
         };
         let csv = erstelle(&[d], Ziel::Aiff);
         let zeilen: Vec<&str> = csv.trim_start_matches('\u{FEFF}').split("\r\n").collect();

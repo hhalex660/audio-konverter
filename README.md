@@ -13,12 +13,13 @@ flowchart LR
 
 - Add folders via button (several at once), drag and drop or command line; subfolders are scanned
 - Sources: FLAC, WAV, AIFF; target **AIFF** (16 bit, 44.1 kHz), **MP3** (320 kbit/s, 44.1 kHz) or **FLAC** (16 bit, 44.1 kHz)
-- Compact table: checkbox, number, file, short folder path, format, status with icon; select all in the header
+- Compact table: one header row per folder (path, file count), then checkbox, number, file, format, status with icon; select all in the header
 - Several files at once (one thread per CPU core), cancel at any time
 - Output next to the source; originals and existing files are never touched
-- Tags are copied; the first image of a folder is embedded as cover (AIFF, MP3 and FLAC)
+- Tags are copied; the first image of a folder is embedded as cover (AIFF, MP3 and FLAC), scaled down to 700 x 700 pixels if larger
 - "Cover" window: folders without cover and all found images
-- Language: German or English (menu top right, remembered), CSV log after a run, light and dark theme, Lucide icons
+- Language (German or English) and theme (System, Light, Dark) top right; target format, theme and window size are remembered
+- After a run: "Open target folder" and CSV log; smooth transitions, Lucide icons
 
 ## Requirements
 
@@ -56,6 +57,7 @@ audio-konverter/
 │   ├── flac.rs       FLAC writer (flacenc)
 │   ├── tags.rs       Tags and cover (ID3, Vorbis)
 │   ├── texte.rs      Texts in German and English
+│   ├── einstellungen.rs  Remembers settings (target format, theme, window)
 │   └── bericht.rs    CSV log
 └── wiki/             features, decisions, review, diagrams (German)
 ```

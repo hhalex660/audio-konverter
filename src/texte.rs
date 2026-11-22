@@ -64,11 +64,7 @@ pub fn t() -> &'static Texte {
 // ---------------------------------------------------------------------------
 
 fn datei() -> Option<PathBuf> {
-    let basis = std::env::var_os("APPDATA")
-        .or_else(|| std::env::var_os("XDG_CONFIG_HOME"))
-        .map(PathBuf::from)
-        .or_else(|| std::env::var_os("HOME").map(|h| PathBuf::from(h).join(".config")))?;
-    Some(basis.join("audio-konverter").join("sprache.txt"))
+    crate::einstellungen::ordner().map(|o| o.join("sprache.txt"))
 }
 
 // Beim Start: gemerkte Sprache, sonst Systemsprache (LANG), sonst Deutsch
@@ -110,6 +106,11 @@ pub struct Texte {
     pub cover_fehlen: &'static str, // „Cover · 3 fehlen“
     pub cover_tip: &'static str,
     pub sprache_tip: &'static str,
+    pub thema: &'static str, // Beschriftung vor der Auswahl
+    pub thema_tip: &'static str,
+    pub thema_system: &'static str, // „System“ = wie das Betriebssystem
+    pub thema_hell: &'static str,
+    pub thema_dunkel: &'static str,
     // Zielformate
     pub ziel_aiff: &'static str,
     pub ziel_mp3: &'static str,
@@ -122,9 +123,10 @@ pub struct Texte {
     pub abbrechen: &'static str,
     pub umwandeln: &'static str,
     pub keine_auswahl: &'static str,
+    pub zielordner_oeffnen: &'static str,
     // Tabelle
     pub alle_tip: &'static str,
-    pub spalten: [&'static str; 5], // Nr, Datei, Ordner, Format, Status
+    pub spalten: [&'static str; 4], // Nr, Datei, Format, Status
     pub status_bereit: &'static str,
     pub status_gesperrt: &'static str,
     pub status_existiert: &'static str,
@@ -184,6 +186,11 @@ pub static DE: Texte = Texte {
     cover_fehlen: "fehlen",
     cover_tip: "Ordner ohne Cover und gefundene Bilder",
     sprache_tip: "Sprache",
+    thema: "Thema",
+    thema_tip: "Thema: System (wie Windows), Hell oder Dunkel",
+    thema_system: "System",
+    thema_hell: "Hell",
+    thema_dunkel: "Dunkel",
     ziel_aiff: "AIFF · 16 Bit · 44,1 kHz",
     ziel_mp3: "MP3 · 320 kbit/s · 44,1 kHz",
     ziel_flac: "FLAC · 16 Bit · 44,1 kHz",
@@ -194,8 +201,9 @@ pub static DE: Texte = Texte {
     abbrechen: "Abbrechen",
     umwandeln: "Umwandeln",
     keine_auswahl: "Keine Datei ausgewählt",
+    zielordner_oeffnen: "Zielordner öffnen",
     alle_tip: "Alle an- oder abwählen",
-    spalten: ["Nr", "Datei", "Ordner", "Format", "Status"],
+    spalten: ["Nr", "Datei", "Format", "Status"],
     status_bereit: "bereit",
     status_gesperrt: "gesperrt",
     status_existiert: "existiert bereits",
@@ -252,6 +260,11 @@ pub static EN: Texte = Texte {
     cover_fehlen: "missing",
     cover_tip: "Folders without cover and found images",
     sprache_tip: "Language",
+    thema: "Theme",
+    thema_tip: "Theme: System (like Windows), Light or Dark",
+    thema_system: "System",
+    thema_hell: "Light",
+    thema_dunkel: "Dark",
     ziel_aiff: "AIFF · 16-bit · 44.1 kHz",
     ziel_mp3: "MP3 · 320 kbit/s · 44.1 kHz",
     ziel_flac: "FLAC · 16-bit · 44.1 kHz",
@@ -262,8 +275,9 @@ pub static EN: Texte = Texte {
     abbrechen: "Cancel",
     umwandeln: "Convert",
     keine_auswahl: "No file selected",
+    zielordner_oeffnen: "Open target folder",
     alle_tip: "Select or deselect all",
-    spalten: ["No", "File", "Folder", "Format", "Status"],
+    spalten: ["No", "File", "Format", "Status"],
     status_bereit: "ready",
     status_gesperrt: "locked",
     status_existiert: "already exists",

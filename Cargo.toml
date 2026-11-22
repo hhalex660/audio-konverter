@@ -17,6 +17,9 @@ id3 = "1"                                                    # Tags und Cover (I
 image = { version = "0.25", default-features = false, features = ["jpeg", "png", "bmp"] } # Cover auf 700 x 700 verkleinern
 flacenc = { version = "0.5.1", default-features = false }   # FLAC schreiben (reines Rust)
 
+[build-dependencies]
+winres = "0.1"                                               # Icon in die Windows-.exe einbauen
+
 # Auch im Debug-Build sind die Bibliotheken optimiert. Für echte Umwandlungen
 # trotzdem `cargo run --release` verwenden (siehe wiki/bekannte-probleme.md).
 [profile.dev.package."*"]

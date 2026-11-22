@@ -10,6 +10,8 @@ flowchart LR
     gui --> icons["icons.rs"]
     gui --> bericht["bericht.rs"]
     gui --> texte["texte.rs"]
+    main --> einstellungen["einstellungen.rs"]
+    app --> einstellungen
     app --> scan["scan.rs"]
     app --> auftraege["auftraege.rs"]
     auftraege --> konverter["konverter.rs"]
@@ -38,7 +40,7 @@ audio-konverter/
 ├── assets/icons/     Lucide-Icons (SVG)
 ├── deny.toml, committed.toml, .pre-commit-config.yaml   Prüfungen
 ├── .cargo/config.toml, .github/workflows/windows.yml   Build der Windows-.exe
-├── src/              main, app, gui, icons, texte, scan, auftraege, konverter, aiff, mp3, flac, tags, bericht
+├── src/              main, app, gui, icons, texte, einstellungen, scan, auftraege, konverter, aiff, mp3, flac, tags, bericht
 └── wiki/
 ```
 

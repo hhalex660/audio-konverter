@@ -164,7 +164,7 @@ mod tests {
         assert!(!text.contains("EGAL"));
         let id3 = erzeuge(&tags, None);
         assert_eq!(&id3[0..3], b"ID3");
-        assert!(flac_bloecke(&[], None).is_empty());
+        assert_eq!(flac_bloecke(&[], None).len(), 0);
     }
 
     // Testbild als Datei im Temp-Verzeichnis

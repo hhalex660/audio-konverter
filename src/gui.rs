@@ -1,7 +1,8 @@
 // Oberfläche: Werkzeugleiste oben, Quellordner links, Dateiliste in der Mitte,
 // Statusleiste mit Hauptaktion unten, Fenster „Cover“ bei Bedarf.
 
-use crate::app::{App, Datei, Status};
+use crate::app::{ordner_oeffnen, App, Datei, Status, Zeile};
+use crate::einstellungen::Thema;
 use crate::konverter::Ziel;
 use crate::texte::{self, t, Sprache};
 use crate::{bericht, icons};
@@ -9,6 +10,7 @@ use eframe::egui::{
     self, vec2, Align, Align2, Checkbox, Color32, FontId, ImageSource, Label, Layout, Margin,
     RichText, Sense, Ui, UiBuilder,
 };
+use std::path::Path;
 
 const ZEILE: f32 = 22.0; // Zeilenhöhe der Tabelle
 const ICON: f32 = 14.0; // Icon-Größe in Knöpfen
@@ -39,6 +41,7 @@ pub fn stil(ctx: &egui::Context) {
         s.spacing.item_spacing = vec2(6.0, 4.0);
         s.spacing.button_padding = vec2(8.0, 3.0);
         s.spacing.interact_size.y = ZEILE;
+        s.animation_time = 0.2; // sanfte Übergänge (Hover, Auf- und Zuklappen)
         s.visuals.window_shadow = egui::Shadow::NONE;
         s.visuals.popup_shadow = egui::Shadow::NONE;
         s.visuals.window_rounding = 6.0.into();
@@ -54,6 +57,15 @@ pub fn stil(ctx: &egui::Context) {
             z.rounding = 4.0.into();
         }
     });
+}
+
+// Gewähltes Thema für egui: „System“ folgt dem Betriebssystem
+pub fn praeferenz(thema: Thema) -> egui::ThemePreference {
+    match thema {
+        Thema::System => egui::ThemePreference::System,
+        Thema::Hell => egui::ThemePreference::Light,
+        Thema::Dunkel => egui::ThemePreference::Dark,
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -86,14 +98,18 @@ fn zeile(ui: &mut Ui, hintergrund: Option<Color32>, inhalt: impl FnOnce(&mut Ui)
     if let Some(f) = hintergrund {
         ui.painter().rect_filled(rect, 0.0, f);
     }
-    if ui.rect_contains_pointer(rect) {
-        let hover = ui
+    // Hover-Hintergrund blendet weich ein und aus
+    let id = ui.id().with(("zeile", rect.min.y as i32));
+    let hover = ui.rect_contains_pointer(rect);
+    let stufe = ui.ctx().animate_bool_with_time(id, hover, 0.12);
+    if stufe > 0.0 {
+        let farbe = ui
             .visuals()
             .widgets
             .hovered
             .weak_bg_fill
-            .gamma_multiply(0.4);
-        ui.painter().rect_filled(rect, 0.0, hover);
+            .gamma_multiply(0.4 * stufe);
+        ui.painter().rect_filled(rect, 0.0, farbe);
     }
     let mut kind = ui.new_child(
         UiBuilder::new()
@@ -140,10 +156,32 @@ fn status_anzeige(ui: &mut Ui, status: &Status) {
     }
 }
 
-// Eine Zeile der Dateiliste
-fn dateizeile(ui: &mut Ui, d: &mut Datei, nr: usize, spalten: &[f32; 6], ziel: Ziel, laeuft: bool) {
-    let hintergrund = d.gruppe_ungerade.then(|| ui.visuals().faint_bg_color);
-    zeile(ui, hintergrund, |ui| {
+// Kopfzeile eines Ordners: Icon, kurzer Pfad, Anzahl der Dateien
+fn kopfzeile(ui: &mut Ui, anzeige: &str, pfad: &Path, anzahl: usize, spalten: &[f32; 5]) {
+    let hintergrund = ui
+        .visuals()
+        .widgets
+        .inactive
+        .weak_bg_fill
+        .gamma_multiply(0.7);
+    let text = ui.visuals().text_color();
+    zeile(ui, Some(hintergrund), |ui| {
+        zelle(ui, spalten[0], |ui| {
+            ui.add(icons::bild(icons::ORDNER, ICON, text));
+        });
+        zelle(ui, spalten[1] + spalten[2], |ui| {
+            ui.add(Label::new(RichText::new(anzeige).strong()).truncate())
+                .on_hover_text(pfad.display().to_string());
+        });
+        zelle(ui, spalten[3] + spalten[4], |ui| {
+            ui.label(RichText::new(format!("{anzahl} {}", t().dateien)).weak());
+        });
+    });
+}
+
+// Eine Dateizeile
+fn dateizeile(ui: &mut Ui, d: &mut Datei, nr: usize, spalten: &[f32; 5], ziel: Ziel, laeuft: bool) {
+    zeile(ui, None, |ui| {
         if d.status == Status::Gesperrt {
             ui.disable(); // ganze Zeile ausgegraut
         }
@@ -159,10 +197,6 @@ fn dateizeile(ui: &mut Ui, d: &mut Datei, nr: usize, spalten: &[f32; 6], ziel: Z
                 .on_hover_text(d.pfad.display().to_string());
         });
         zelle(ui, spalten[3], |ui| {
-            ui.add(Label::new(RichText::new(d.ordner_anzeige.as_str()).weak()).truncate())
-                .on_hover_text(d.ordner.display().to_string());
-        });
-        zelle(ui, spalten[4], |ui| {
             let schwach = ui.visuals().weak_text_color();
             ui.label(RichText::new(d.von()).weak());
             if d.nach(ziel) != "-" {
@@ -170,7 +204,7 @@ fn dateizeile(ui: &mut Ui, d: &mut Datei, nr: usize, spalten: &[f32; 6], ziel: Z
                 ui.label(RichText::new(d.nach(ziel)).weak());
             }
         });
-        zelle(ui, spalten[5], |ui| status_anzeige(ui, &d.status));
+        zelle(ui, spalten[4], |ui| status_anzeige(ui, &d.status));
     });
 }
 
@@ -193,7 +227,11 @@ impl App {
                             .add(knopf(ui, icons::ORDNER_PLUS, t.ordner_hinzufuegen))
                             .clicked()
                         {
-                            for p in rfd::FileDialog::new().pick_folders().unwrap_or_default() {
+                            let mut dialog = rfd::FileDialog::new();
+                            if let Some(start) = &self.letzter_ordner {
+                                dialog = dialog.set_directory(start); // dort weitermachen
+                            }
+                            for p in dialog.pick_folders().unwrap_or_default() {
                                 self.ordner_hinzufuegen(p);
                             }
                         }
@@ -212,7 +250,25 @@ impl App {
                     });
 
                     ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                        // Sprache ganz rechts (nicht von einem Lauf gesperrt)
+                        // Thema ganz rechts: wie das Betriebssystem, hell oder dunkel
+                        let mut thema = self.thema;
+                        egui::ComboBox::from_id_salt("thema")
+                            .selected_text(thema.name())
+                            .width(76.0)
+                            .show_ui(ui, |ui| {
+                                for th in Thema::ALLE {
+                                    ui.selectable_value(&mut thema, th, th.name());
+                                }
+                            })
+                            .response
+                            .on_hover_text(t.thema_tip);
+                        if thema != self.thema {
+                            self.thema = thema;
+                            ctx.set_theme(praeferenz(thema));
+                        }
+                        ui.label(RichText::new(t.thema).weak());
+                        ui.separator();
+                        // Sprache (nicht von einem Lauf gesperrt)
                         let mut sprache = texte::sprache();
                         egui::ComboBox::from_id_salt("sprache")
                             .selected_text(sprache.name())
@@ -342,7 +398,13 @@ impl App {
                             if ui.add(knopf(ui, icons::STOPP, t.abbrechen)).clicked() {
                                 self.abbrechen();
                             }
-                            let anteil = self.erledigt as f32 / self.gesamt.max(1) as f32;
+                            // Balken füllt sich weich statt in Sprüngen
+                            let ziel_anteil = self.erledigt as f32 / self.gesamt.max(1) as f32;
+                            let anteil = ctx.animate_value_with_time(
+                                egui::Id::new("fortschritt"),
+                                ziel_anteil,
+                                0.25,
+                            );
                             ui.label(
                                 RichText::new(format!("{} / {}", self.erledigt, self.gesamt))
                                     .weak(),
@@ -352,15 +414,28 @@ impl App {
                                     .desired_width(160.0)
                                     .desired_height(6.0),
                             );
-                        } else if ui
-                            .add_enabled(
-                                self.kann_starten(),
-                                haupt_knopf(icons::START, t.umwandeln),
-                            )
-                            .on_disabled_hover_text(t.keine_auswahl)
-                            .clicked()
-                        {
-                            self.starten(ctx);
+                        } else {
+                            // Balken fürs nächste Mal zurücksetzen, ohne rückwärts zu laufen
+                            ctx.animate_value_with_time(egui::Id::new("fortschritt"), 0.0, 0.0);
+                            if ui
+                                .add_enabled(
+                                    self.kann_starten(),
+                                    haupt_knopf(icons::START, t.umwandeln),
+                                )
+                                .on_disabled_hover_text(t.keine_auswahl)
+                                .clicked()
+                            {
+                                self.starten(ctx);
+                            }
+                            if let Some(ordner) = &self.zielordner {
+                                if ui
+                                    .add(knopf(ui, icons::ORDNER_OFFEN, t.zielordner_oeffnen))
+                                    .on_hover_text(ordner.display().to_string())
+                                    .clicked()
+                                {
+                                    ordner_oeffnen(ordner);
+                                }
+                            }
                         }
                     });
                 });
@@ -380,7 +455,7 @@ impl App {
             let laeuft = self.laeuft;
             let ziel = self.ziel;
             let rest = (ui.available_width() - B_HAKEN - B_NR - B_FORMAT - B_STATUS).max(200.0);
-            let spalten = [B_HAKEN, B_NR, rest * 0.55, rest * 0.45, B_FORMAT, B_STATUS];
+            let spalten = [B_HAKEN, B_NR, rest, B_FORMAT, B_STATUS];
 
             // Kopfzeile mit „alle an/aus“
             let waehlbar = self.anzahl_waehlbar();
@@ -411,10 +486,26 @@ impl App {
             egui::ScrollArea::vertical().auto_shrink(false).show_rows(
                 ui,
                 ZEILE,
-                self.dateien.len(),
+                self.zeilen.len(),
                 |ui, bereich| {
-                    for i in bereich {
-                        dateizeile(ui, &mut self.dateien[i], i + 1, &spalten, ziel, laeuft);
+                    for z in bereich {
+                        match &self.zeilen[z] {
+                            Zeile::Kopf {
+                                anzeige,
+                                pfad,
+                                anzahl,
+                            } => kopfzeile(ui, anzeige, pfad, *anzahl, &spalten),
+                            Zeile::Datei(i) => {
+                                dateizeile(
+                                    ui,
+                                    &mut self.dateien[*i],
+                                    i + 1,
+                                    &spalten,
+                                    ziel,
+                                    laeuft,
+                                );
+                            }
+                        }
                     }
                 },
             );
@@ -542,6 +633,15 @@ fn leer(ui: &mut Ui) {
 
 impl eframe::App for App {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        // Fenstergröße merken (nicht beim Minimieren oder Maximieren)
+        let (klein, gross) = ctx.input(|i| {
+            let v = i.viewport();
+            (v.minimized == Some(true), v.maximized == Some(true))
+        });
+        if !klein && !gross {
+            let groesse = ctx.screen_rect().size();
+            self.fenster = Some((groesse.x, groesse.y));
+        }
         self.nachrichten_verarbeiten();
         self.ablegen(ctx);
         self.werkzeugleiste(ctx);
@@ -549,5 +649,10 @@ impl eframe::App for App {
         self.quellen(ctx);
         self.liste(ctx);
         self.cover_fenster(ctx);
+    }
+
+    // Beim Beenden Einstellungen merken
+    fn on_exit(&mut self, _gl: Option<&eframe::glow::Context>) {
+        self.einstellungen().speichern();
     }
 }

@@ -28,6 +28,8 @@
 | Lucide-Icons (Iconify), als SVG über `egui_extras` | schlicht, einheitlich, ISC-Lizenz; weiß gespeichert und eingefärbt |
 | Feste Akzentfarbe für die Hauptaktion | Weiß auf Blau ist in hellem und dunklem Thema lesbar |
 | Format als eine Spalte („FLAC → AIFF“), Ordner kurz ab Quellordner | kompakte Tabelle, voller Pfad als Tooltip und im Protokoll |
+| Kopfzeile pro Ordner statt Streifen und Ordner-Spalte | Streifen waren in Hell und Dunkel kaum zu sehen; Kopfzeile zeigt Ordner und Anzahl, spart eine Spalte |
+| Icon mit `winres` in `build.rs` einbauen, nur für Windows | kleinste Lösung ohne Zusatzwerkzeug; Fenster-Icon übernimmt Windows aus der .exe |
 | Nur sichtbare Zeilen zeichnen | flüssig auch bei tausenden Dateien |
 | Tests im Projekt (`cargo test --release`) | Bitgenauigkeit, Länge, MP3, Cover, Abbruch, vorhandene Dateien |
 | Zielformate AIFF (16 Bit, 44,1 kHz), MP3 (320 kbit/s) und FLAC, keine Playerauswahl | alle geprüften Pioneer- und Denon-Player spielen AIFF und MP3 (Liste in `dj-player.md`); eine Auswahl würde am Ergebnis nichts ändern (KISS, YAGNI). FLAC ist optional, weil nicht jeder Player es spielt |
@@ -37,6 +39,9 @@
 | Lizenz GPL-3.0-or-later | Copyleft für ein fertiges Programm; kompatibel mit LAME (LGPL) und den übrigen Bibliotheken (MIT, Apache-2.0, MPL-2.0). LGPL wäre für Bibliotheken, AGPL für Netzdienste |
 | `unsafe` nur in `mp3.rs` (`set_len`) | `mp3lame-encoder` bietet keine sichere Variante; Stellen mit `SAFETY`-Kommentar |
 | Alle Texte in `texte.rs`, Sprache global (`AtomicU8`) | Fehlertexte entstehen in Hintergrund-Threads und brauchen die Sprache ohne Weiterreichen |
+| Zielformat, Thema, Fenstergröße und Startordner in `einstellungen.txt` (Zeilen `schluessel=wert`), nur beim Beenden geschrieben | ohne Zusatzbibliothek, kein Schreiben bei jedem Klick; Tests berühren die Datei nicht. Beim Absturz gehen Änderungen verloren |
+| Thema „System“ ist der Standard | folgt dem Betriebssystem, Hell und Dunkel nur auf Wunsch |
+| „Zielordner öffnen“ nutzt `explorer`, `open` oder `xdg-open` | keine Zusatzbibliothek; öffnet den Ordner der ersten fertigen Datei |
 | Sprache in `sprache.txt` im Einstellungsordner gemerkt, sonst Systemsprache | ohne Zusatzbibliothek; ohne Schreibrecht gilt die Systemsprache |
 | Das Protokoll (CSV) folgt der Sprache, auch der Kopf | eine Sprache pro Programmlauf, einfacher zu erklären |
 | Prüfungen: nur rustfmt, clippy (pedantic), committed, cargo-deny | `typos` meldet bei deutschen Texten rund 200 Fehlalarme; `rustfmt.toml` bringt jetzt nichts (YAGNI); `cargo-machete` nur von Hand (Stand 22.11.2026: nichts gefunden) |
@@ -74,5 +79,6 @@ flowchart LR
 | `mp3.rs` | MP3 schreiben (LAME, 320 kbit/s) |
 | `flac.rs` | FLAC schreiben (flacenc), Kopf mit Länge und MD5 |
 | `texte.rs` | alle Texte in Deutsch und Englisch, Sprachwahl merken |
+| `einstellungen.rs` | Zielformat, Thema, Fenstergröße und Startordner merken (`einstellungen.txt`) |
 | `tags.rs` | Tags und Cover als ID3 (AIFF, MP3) und als Vorbis-Kommentar mit Bildblock (FLAC) |
 | `bericht.rs` | CSV-Protokoll |

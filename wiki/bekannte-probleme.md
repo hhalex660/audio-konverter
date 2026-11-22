@@ -13,6 +13,7 @@
 | Fehler „Format nicht erkannt“ oder „Codec nicht unterstützt“ | Datei ist kein gültiges FLAC, WAV oder AIFF. Maus über **Fehler** halten |
 | Fehler „Zieldatei existiert bereits“ (englisch: „Target file already exists“) | Ziel liegt schon im Ordner, z. B. weil `Track.wav` und `Track.flac` beide `Track.aiff` ergeben. Es wird nie überschrieben |
 | Sprache gewechselt, alter Fehlertext bleibt | Fehlertexte entstehen beim Umwandeln und bleiben in der alten Sprache, bis die Datei neu umgewandelt wird |
+| Zielformat, Thema oder Fenstergröße werden nicht gemerkt | Sie werden beim normalen Beenden in `einstellungen.txt` (`%APPDATA%\audio-konverter`) gespeichert; nach einem Absturz oder Beenden über den Task-Manager fehlen die letzten Änderungen. Datei löschen setzt alles auf Standard |
 | Sprachwahl wird nicht gemerkt | Das Programm schreibt `sprache.txt` nach `%APPDATA%\audio-konverter`; ohne Schreibrecht gilt beim nächsten Start wieder die Systemsprache |
 
 Bei Fehlern: Maus über das rote **Fehler** halten. Immer mit Kopien testen.

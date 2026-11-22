@@ -15,9 +15,10 @@ pub struct Fund {
 
 // Dateiendung in Kleinbuchstaben, z. B. "flac"
 pub fn endung_von(pfad: &Path) -> String {
-    pfad.extension()
-        .map(|e| e.to_string_lossy().to_lowercase())
-        .unwrap_or_default()
+    match pfad.extension() {
+        Some(e) => e.to_string_lossy().to_lowercase(),
+        None => String::new(),
+    }
 }
 
 // Ordner und alle Unterordner in einem Durchlauf durchsuchen

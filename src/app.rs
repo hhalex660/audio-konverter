@@ -1,6 +1,7 @@
 // Zustand und Ablaufsteuerung: Ordner, Dateiliste, Start, Abbruch.
 
 use crate::auftraege::{self, Auftrag, Msg};
+use crate::einstellungen::{Einstellungen, Thema};
 use crate::konverter::{ist_gesperrt, Ziel};
 use crate::scan;
 use crate::texte::t;
@@ -10,6 +11,16 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{channel, Receiver};
 use std::sync::Arc;
+
+// Eine Zeile der Tabelle: Kopfzeile eines Ordners oder eine Datei (Index in `dateien`)
+pub enum Zeile {
+    Kopf {
+        anzeige: String, // kurzer Pfad ab dem Quellordner
+        pfad: PathBuf,   // voller Pfad (Tooltip)
+        anzahl: usize,   // Dateien in diesem Ordner
+    },
+    Datei(usize),
+}
 
 // Status einer Datei in der Tabelle
 #[derive(Clone, PartialEq)]
@@ -49,7 +60,6 @@ pub struct Datei {
     pub endung: String, // kleingeschrieben, z. B. "flac"
     pub gewaehlt: bool, // Häkchen
     pub status: Status,
-    pub gruppe_ungerade: bool, // Zeilenfarbe: wechselt mit jedem Ordner
 }
 
 impl Datei {
@@ -83,16 +93,21 @@ pub struct Bild {
 pub struct App {
     pub ordner: Vec<PathBuf>,               // gewählte Quellordner
     pub dateien: Vec<Datei>,                // alle gefundenen Audiodateien, nach Ordner sortiert
-    pub bilder: Vec<Bild>,                  // gefundene Bilder, nach Ordner sortiert
+    pub zeilen: Vec<Zeile>, // Tabellenzeilen: je Ordner eine Kopfzeile, dann seine Dateien
+    pub bilder: Vec<Bild>,  // gefundene Bilder, nach Ordner sortiert
     pub ohne_cover: Vec<(PathBuf, String)>, // Ordner mit Audio, aber ohne Bild (Pfad, Anzeige)
     pub ziel: Ziel,
     pub laeuft: bool,
-    pub gesamt: usize,           // Aufträge im aktuellen Lauf
-    pub erledigt: usize,         // davon abgeschlossen
-    pub fehler: usize,           // davon mit Fehler
-    pub protokoll_bereit: bool,  // Protokoll gibt es erst nach einem Lauf
-    pub meldung: Option<String>, // Hinweis in der Statusleiste
-    pub zeige_cover: bool,       // Fenster „Cover“ offen
+    pub gesamt: usize,                   // Aufträge im aktuellen Lauf
+    pub erledigt: usize,                 // davon abgeschlossen
+    pub fehler: usize,                   // davon mit Fehler
+    pub protokoll_bereit: bool,          // Protokoll gibt es erst nach einem Lauf
+    pub meldung: Option<String>,         // Hinweis in der Statusleiste
+    pub zeige_cover: bool,               // Fenster „Cover“ offen
+    pub thema: Thema,                    // Thema: System, hell, dunkel
+    pub fenster: Option<(f32, f32)>,     // zuletzt gesehene Fenstergröße (wird gemerkt)
+    pub letzter_ordner: Option<PathBuf>, // Startordner des Auswahldialogs
+    pub zielordner: Option<PathBuf>,     // Ordner der ersten fertigen Datei des letzten Laufs
     rx: Option<Receiver<Msg>>,
     abbruch: Arc<AtomicBool>,
 }
@@ -108,12 +123,46 @@ fn anzeige(ordner: &Path, wurzel: &Path) -> String {
 }
 
 fn dateiname(p: &Path) -> String {
-    p.file_name()
-        .map(|n| n.to_string_lossy().to_string())
-        .unwrap_or_default()
+    match p.file_name() {
+        Some(n) => n.to_string_lossy().into_owned(),
+        None => String::new(),
+    }
+}
+
+// Ordner im Datei-Manager öffnen (Windows: Explorer); Fehler sind egal
+pub fn ordner_oeffnen(pfad: &Path) {
+    let programm = if cfg!(windows) {
+        "explorer"
+    } else if cfg!(target_os = "macos") {
+        "open"
+    } else {
+        "xdg-open"
+    };
+    let _ = std::process::Command::new(programm).arg(pfad).spawn();
 }
 
 impl App {
+    // Mit den gemerkten Einstellungen starten
+    pub fn neu(e: Einstellungen) -> Self {
+        Self {
+            ziel: e.ziel,
+            thema: e.thema,
+            fenster: e.fenster,
+            letzter_ordner: e.letzter_ordner,
+            ..Self::default()
+        }
+    }
+
+    // Das, was beim Beenden gemerkt wird
+    pub fn einstellungen(&self) -> Einstellungen {
+        Einstellungen {
+            ziel: self.ziel,
+            thema: self.thema,
+            fenster: self.fenster,
+            letzter_ordner: self.letzter_ordner.clone(),
+        }
+    }
+
     // Ordner samt Unterordnern durchsuchen und Dateien und Bilder aufnehmen
     pub fn ordner_hinzufuegen(&mut self, wurzel: PathBuf) {
         if self.laeuft || self.ordner.contains(&wurzel) {
@@ -132,7 +181,6 @@ impl App {
                 pfad,
                 gewaehlt: false,
                 status: Status::Wartet, // wird in aktualisiere_status() bestimmt
-                gruppe_ungerade: false,
             });
         }
         let bekannt: HashSet<PathBuf> = self.bilder.iter().map(|b| b.pfad.clone()).collect();
@@ -146,6 +194,7 @@ impl App {
                 pfad,
             });
         }
+        self.letzter_ordner = wurzel.parent().map(Path::to_path_buf);
         self.ordner.push(wurzel);
         self.neu_ordnen();
     }
@@ -168,20 +217,27 @@ impl App {
         }
     }
 
-    // Sortieren, Zeilenfarben vergeben, Ordner ohne Cover bestimmen
+    // Sortieren, Ordner-Kopfzeilen bilden, Ordner ohne Cover bestimmen
     fn neu_ordnen(&mut self) {
         self.dateien
             .sort_by(|a, b| (&a.ordner, &a.name).cmp(&(&b.ordner, &b.name)));
         self.bilder
             .sort_by(|a, b| (&a.ordner, &a.name).cmp(&(&b.ordner, &b.name)));
-        let mut ungerade = true;
-        let mut letzter: Option<&PathBuf> = None;
-        for d in &mut self.dateien {
-            if letzter != Some(&d.ordner) {
-                ungerade = !ungerade;
-                letzter = Some(&d.ordner);
-            }
-            d.gruppe_ungerade = ungerade;
+        self.zeilen.clear();
+        let mut i = 0;
+        while i < self.dateien.len() {
+            let ordner = &self.dateien[i].ordner;
+            let anzahl = self.dateien[i..]
+                .iter()
+                .take_while(|d| &d.ordner == ordner)
+                .count();
+            self.zeilen.push(Zeile::Kopf {
+                anzeige: self.dateien[i].ordner_anzeige.clone(),
+                pfad: ordner.clone(),
+                anzahl,
+            });
+            self.zeilen.extend((i..i + anzahl).map(Zeile::Datei));
+            i += anzahl;
         }
         let mit_bild: HashSet<&PathBuf> = self.bilder.iter().map(|b| &b.ordner).collect();
         self.ohne_cover = self
@@ -271,6 +327,7 @@ impl App {
         self.fehler = 0;
         self.laeuft = true;
         self.protokoll_bereit = false;
+        self.zielordner = None;
         self.meldung = None;
         self.abbruch = Arc::new(AtomicBool::new(false));
 
@@ -315,6 +372,11 @@ impl App {
     fn lauf_beenden(&mut self) {
         self.laeuft = false;
         self.protokoll_bereit = true;
+        self.zielordner = self
+            .dateien
+            .iter()
+            .find(|d| d.status == Status::Fertig)
+            .map(|d| d.ordner.clone());
         self.rx = None;
         // Nicht gestartete Dateien (nach Abbruch) wieder freigeben
         for d in &mut self.dateien {
@@ -382,6 +444,7 @@ mod tests {
         assert_eq!((fertig, fehler), (1, 1));
         assert!(std::fs::metadata(o.join("a.mp3")).unwrap().len() > 10_000);
         assert!(app.protokoll_bereit);
+        assert_eq!(app.zielordner, Some(o.clone())); // „Zielordner öffnen“ zeigt hierher
     }
 
     #[test]
@@ -396,7 +459,14 @@ mod tests {
 
         let mut app = App::default();
         app.ordner_hinzufuegen(o.clone());
+        // Je Ordner eine Kopfzeile, danach seine Dateien
+        assert_eq!(app.zeilen.len(), 4);
+        assert!(matches!(app.zeilen[0], Zeile::Kopf { anzahl: 1, .. }));
+        assert!(matches!(app.zeilen[1], Zeile::Datei(0)));
+        assert!(matches!(app.zeilen[2], Zeile::Kopf { anzahl: 1, .. }));
+        assert!(matches!(app.zeilen[3], Zeile::Datei(1)));
         assert_eq!(app.ohne_cover.len(), 1);
+        assert_eq!(app.letzter_ordner, o.parent().map(Path::to_path_buf));
         assert_eq!(app.ohne_cover[0].0, o.join("ohne"));
         assert_eq!(app.cover_fuer(&o.join("mit")), Some(o.join("mit/b.jpg")));
         assert_eq!(

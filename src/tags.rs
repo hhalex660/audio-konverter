@@ -4,6 +4,8 @@
 
 use id3::frame::{Content, Picture, PictureType};
 use id3::{Frame, Tag, TagLike, Version};
+use image::codecs::jpeg::JpegEncoder;
+use image::imageops::FilterType;
 use std::path::Path;
 use symphonia::core::meta::{StandardTagKey as K, Tag as QuellTag};
 
@@ -25,7 +27,28 @@ fn feld(k: K) -> Option<(&'static str, &'static str)> {
     })
 }
 
-// Bild laden: (MIME-Typ, Bytes der Bilddatei unverändert)
+// Größte Kantenlänge des Covers. Sehr große Bilder (z. B. 3000 x 3000, mehrere MB) lassen
+// sich im Windows Media Player nicht öffnen und blähen jede Datei auf.
+const COVER_MAX: u32 = 700;
+
+// Bild größer als 700 x 700: auf 700 verkleinern (Seitenverhältnis bleibt) und als JPEG
+// speichern. None = Bild bleibt unverändert (klein genug oder nicht lesbar).
+fn verkleinert(daten: &[u8]) -> Option<Vec<u8>> {
+    let bild = image::load_from_memory(daten).ok()?;
+    if bild.width() <= COVER_MAX && bild.height() <= COVER_MAX {
+        return None;
+    }
+    let klein = bild
+        .resize(COVER_MAX, COVER_MAX, FilterType::Lanczos3)
+        .to_rgb8();
+    let mut jpeg = Vec::new();
+    JpegEncoder::new_with_quality(&mut jpeg, 90)
+        .encode_image(&klein)
+        .ok()?;
+    Some(jpeg)
+}
+
+// Bild laden: (MIME-Typ, Bytes), bei Bedarf auf 700 x 700 verkleinert
 fn bild_laden(pfad: &Path) -> Option<(&'static str, Vec<u8>)> {
     let daten = std::fs::read(pfad).ok()?;
     let mime = match pfad
@@ -38,7 +61,7 @@ fn bild_laden(pfad: &Path) -> Option<(&'static str, Vec<u8>)> {
         Some("bmp") => "image/bmp",
         _ => "image/jpeg",
     };
-    Some((mime, daten))
+    Some(verkleinert(&daten).map_or((mime, daten), |jpeg| ("image/jpeg", jpeg)))
 }
 
 // Fertigen ID3-Tag als Bytes erzeugen. Leer, wenn es nichts zu schreiben gibt.
@@ -142,5 +165,33 @@ mod tests {
         let id3 = erzeuge(&tags, None);
         assert_eq!(&id3[0..3], b"ID3");
         assert!(flac_bloecke(&[], None).is_empty());
+    }
+
+    // Testbild als Datei im Temp-Verzeichnis
+    fn testbild(name: &str, b: u32, h: u32) -> std::path::PathBuf {
+        let pfad = std::env::temp_dir().join(format!("ak-cover-{name}"));
+        image::RgbImage::from_fn(b, h, |x, y| {
+            image::Rgb([(x % 256) as u8, (y % 256) as u8, 90])
+        })
+        .save(&pfad)
+        .unwrap();
+        pfad
+    }
+
+    #[test]
+    fn grosses_cover_wird_auf_700_verkleinert() {
+        let pfad = testbild("gross.png", 1400, 1000);
+        let (mime, daten) = bild_laden(&pfad).unwrap();
+        let bild = image::load_from_memory(&daten).unwrap();
+        assert_eq!(mime, "image/jpeg");
+        assert_eq!((bild.width(), bild.height()), (700, 500)); // Seitenverhältnis bleibt
+    }
+
+    #[test]
+    fn kleines_cover_bleibt_unveraendert() {
+        let pfad = testbild("klein.jpg", 600, 600);
+        let (mime, daten) = bild_laden(&pfad).unwrap();
+        assert_eq!(mime, "image/jpeg");
+        assert_eq!(daten, std::fs::read(&pfad).unwrap());
     }
 }

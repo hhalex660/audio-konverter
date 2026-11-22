@@ -7,6 +7,7 @@
 | Build-Fehler mit `convert.rs` oder `cover.rs` | Beide Dateien gibt es nicht mehr: aus `src/` löschen |
 | „file not found for module“ | In `src/` müssen liegen: `main`, `app`, `gui`, `icons`, `texte`, `scan`, `auftraege`, `konverter`, `aiff`, `mp3`, `flac`, `tags`, `bericht` (je `.rs`), dazu `assets/icons/` im Projektordner |
 | `cargo` nicht gefunden | Rust über rustup.rs installieren, VS Code neu starten |
+| FLAC (oder AIFF/MP3) lässt sich im Windows Media Player nicht öffnen, in VLC schon | Ursache war ein sehr großes Cover (3000 x 3000 Pixel, 4,6 MB). Jetzt wird das Cover auf höchstens 700 x 700 Pixel verkleinert. Ältere Dateien neu umwandeln |
 | Protokoll-Knopf ist grau | Erst nach einer Umwandlung aktiv, wieder grau nach Änderung von Ordnern oder Zielformat |
 | CSV in Excel: Umlaute falsch | Datei über „Daten → Aus Text/CSV“ öffnen, Trennzeichen „;“ |
 | Fehler „Format nicht erkannt“ oder „Codec nicht unterstützt“ | Datei ist kein gültiges FLAC, WAV oder AIFF. Maus über **Fehler** halten |

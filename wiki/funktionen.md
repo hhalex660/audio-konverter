@@ -9,7 +9,7 @@
 - Mehrere Dateien gleichzeitig (ein Thread pro CPU-Kern), Abbrechen jederzeit
 - Ziel liegt im Ordner der Quelle; Originale und vorhandene Dateien werden nie verändert
 - Nach dem Lauf: Zusammenfassung in der Statusleiste, Protokoll als CSV (deutsch: `nr;datei;Ordner/Pfad;von;nach;status`, englisch: `no;file;folder/path;from;to;status`)
-- Fenster „Cover“: Ordner ohne Bild und alle gefundenen Bilder; das erste Bild eines Ordners wird in AIFF, MP3 und FLAC eingebettet
+- Fenster „Cover“: Ordner ohne Bild und alle gefundenen Bilder; das erste Bild eines Ordners wird in AIFF, MP3 und FLAC eingebettet (größer als 700 x 700 Pixel: auf 700 verkleinert, sonst unverändert)
 - Tags (Titel, Künstler, Album, Album-Künstler, Genre, Jahr, Track, Disc, Komponist, BPM, Label) werden übernommen: bei AIFF und MP3 als ID3, bei FLAC als Vorbis-Kommentar
 - Sprache Deutsch oder Englisch: Auswahl oben rechts, wird in `sprache.txt` im Einstellungsordner gemerkt (`%APPDATA%\audio-konverter`); beim ersten Start gilt die Systemsprache (`LANG`), sonst Deutsch
 - Helles und dunkles Systemthema, Lucide-Icons

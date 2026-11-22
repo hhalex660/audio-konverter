@@ -14,6 +14,7 @@ symphonia = { version = "0.5", default-features = false, features = ["flac", "wa
 rubato = "0.16"                                              # Sample-Rate umrechnen
 mp3lame-encoder = "0.1"                                      # MP3 schreiben (LAME eingebaut, braucht beim Bauen einen C-Compiler)
 id3 = "1"                                                    # Tags und Cover (ID3v2)
+image = { version = "0.25", default-features = false, features = ["jpeg", "png", "bmp"] } # Cover auf 700 x 700 verkleinern
 flacenc = { version = "0.5.1", default-features = false }   # FLAC schreiben (reines Rust)
 
 # Auch im Debug-Build sind die Bibliotheken optimiert. Für echte Umwandlungen

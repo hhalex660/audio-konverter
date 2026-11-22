@@ -32,5 +32,6 @@ Lizenzen und Lücken prüfen: `cargo deny check`.
 
 - `deny.toml` ignoriert zwei Meldungen zu `quick-xml` (RUSTSEC-2026-0194/0195): kommt nur unter Linux über `eframe` 0.29 (Bedienungshilfen), das Programm liest kein fremdes XML. Erledigt sich mit einem neueren `eframe`.
 - Warnung „LGPL-3.0 veraltet“ kommt von den MP3-Bibliotheken und ist harmlos.
-- Nicht übernommen (YAGNI): `typos` (liefert bei deutschen Texten rund 200 Fehlalarme), `rustfmt.toml` (Standard reicht), `cargo-machete` (erst in der CI).
+- Nicht übernommen (YAGNI): `typos` (liefert bei deutschen Texten rund 200 Fehlalarme), `rustfmt.toml` (Standard reicht).
+- `cargo-machete` (ungenutzte Abhängigkeiten) läuft nur von Hand: `cargo install cargo-machete`, dann `cargo machete`. Stand 22.11.2026: keine ungenutzten Abhängigkeiten gefunden (Version 0.9.1; 0.10.1 braucht neueres Rust).
 - Hooks, `deny.toml` und `committed` wurden unter Linux geprüft, auf Windows noch nicht.

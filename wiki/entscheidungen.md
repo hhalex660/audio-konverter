@@ -39,7 +39,7 @@
 | Alle Texte in `texte.rs`, Sprache global (`AtomicU8`) | Fehlertexte entstehen in Hintergrund-Threads und brauchen die Sprache ohne Weiterreichen |
 | Sprache in `sprache.txt` im Einstellungsordner gemerkt, sonst Systemsprache | ohne Zusatzbibliothek; ohne Schreibrecht gilt die Systemsprache |
 | Das Protokoll (CSV) folgt der Sprache, auch der Kopf | eine Sprache pro Programmlauf, einfacher zu erklären |
-| Prüfungen: nur rustfmt, clippy (pedantic), committed, cargo-deny | `typos` meldet bei deutschen Texten rund 200 Fehlalarme; `rustfmt.toml` und `cargo-machete` bringen jetzt nichts (YAGNI) |
+| Prüfungen: nur rustfmt, clippy (pedantic), committed, cargo-deny | `typos` meldet bei deutschen Texten rund 200 Fehlalarme; `rustfmt.toml` bringt jetzt nichts (YAGNI); `cargo-machete` nur von Hand (Stand 22.11.2026: nichts gefunden) |
 | Cover höchstens 700 x 700 Pixel (Bibliothek `image`), kleinere Bilder bleiben unverändert | 3000-Pixel-Cover (4,6 MB) ließ sich im Windows Media Player nicht öffnen; 700 Pixel ist die Größe, die Bandcamp selbst einbettet |
 
 ## Module

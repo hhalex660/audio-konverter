@@ -1,6 +1,6 @@
 # Funktionen
 
-- Ordner per Knopf (mehrere auf einmal), per Drag & Drop oder als Programm-Argument hinzufügen; Unterordner werden durchsucht
+- Ordner per Knopf (mehrere auf einmal), per Drag & Drop oder als Programm-Argument hinzufügen; Unterordner werden durchsucht; versteckte Dateien und Ordner (z. B. `._Titel.wav` vom Mac, Papierkorb, versteckte Media-Player-Bilder) werden übersprungen
 - Quellen: FLAC, WAV, AIFF (MP3 wird gelistet, aber nie umgewandelt)
 - Ziel per Dropdown: AIFF 16 Bit 44,1 kHz, MP3 320 kbit/s 44,1 kHz oder FLAC 16 Bit 44,1 kHz
 - Tabelle: pro Ordner eine Kopfzeile (Pfad, Dateianzahl); darunter Häkchen, Nr, Datei, Format (z. B. FLAC → AIFF), Status mit Icon
@@ -9,7 +9,7 @@
 - Mehrere Dateien gleichzeitig (ein Thread pro CPU-Kern), Abbrechen jederzeit
 - Ziel liegt im Ordner der Quelle; Originale und vorhandene Dateien werden nie verändert
 - Nach dem Lauf: Zusammenfassung in der Statusleiste, Protokoll als CSV (deutsch: `nr;datei;Ordner/Pfad;von;nach;status`, englisch: `no;file;folder/path;from;to;status`)
-- Fenster „Cover“: Ordner ohne Bild und alle gefundenen Bilder; das erste Bild eines Ordners wird in AIFF, MP3 und FLAC eingebettet (größer als 700 x 700 Pixel: auf 700 verkleinert, sonst unverändert)
+- Fenster „Cover“: Ordner ohne Bild und alle gefundenen Bilder; das erste lesbare Bild eines Ordners wird in AIFF, MP3 und FLAC eingebettet (kaputte Bilder werden übersprungen) (größer als 700 x 700 Pixel: auf 700 verkleinert, sonst unverändert)
 - Tags (Titel, Künstler, Album, Album-Künstler, Genre, Jahr, Track, Disc, Komponist, BPM, Label) werden übernommen: bei AIFF und MP3 als ID3, bei FLAC als Vorbis-Kommentar
 - Sprache Deutsch oder Englisch: Auswahl oben rechts, wird in `sprache.txt` im Einstellungsordner gemerkt (`%APPDATA%\audio-konverter`); beim ersten Start gilt die Systemsprache (`LANG`), sonst Deutsch
 - Thema: Auswahl oben rechts (System = wie das Betriebssystem, Hell, Dunkel), Lucide-Icons

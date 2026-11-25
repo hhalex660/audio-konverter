@@ -426,7 +426,7 @@ mod tests {
         wandle(&o.join("a.wav"), &o.join("a.aif"), Ziel::Aiff, None, &nie).unwrap();
 
         let mut app = App::default();
-        app.ordner_hinzufuegen(o.clone());
+        app.ordner_hinzufuegen(o.to_path_buf());
         app.ziel_setzen(Ziel::Mp3);
         assert_eq!(app.anzahl_gewaehlt(), 2);
         durchlaufen(&mut app);
@@ -444,7 +444,7 @@ mod tests {
         assert_eq!((fertig, fehler), (1, 1));
         assert!(std::fs::metadata(o.join("a.mp3")).unwrap().len() > 10_000);
         assert!(app.protokoll_bereit);
-        assert_eq!(app.zielordner, Some(o.clone())); // „Zielordner öffnen“ zeigt hierher
+        assert_eq!(app.zielordner, Some(o.to_path_buf())); // „Zielordner öffnen“ zeigt hierher
     }
 
     #[test]
@@ -458,7 +458,7 @@ mod tests {
         std::fs::write(o.join("mit/b.jpg"), b"x").unwrap();
 
         let mut app = App::default();
-        app.ordner_hinzufuegen(o.clone());
+        app.ordner_hinzufuegen(o.to_path_buf());
         // Je Ordner eine Kopfzeile, danach seine Dateien
         assert_eq!(app.zeilen.len(), 4);
         assert!(matches!(app.zeilen[0], Zeile::Kopf { anzahl: 1, .. }));

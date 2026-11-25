@@ -64,7 +64,8 @@ impl Einstellungen {
                 "fenster" => {
                     e.fenster = wert
                         .split_once('x')
-                        .and_then(|(b, h)| Some((b.parse::<f32>().ok()?, h.parse::<f32>().ok()?)));
+                        .and_then(|(b, h)| Some((b.parse::<f32>().ok()?, h.parse::<f32>().ok()?)))
+                        .filter(|(b, h)| b.is_finite() && h.is_finite()); // „NaN“ wäre unbrauchbar
                 }
                 "ordner" if !wert.is_empty() => e.letzter_ordner = Some(PathBuf::from(wert)),
                 _ => {}
@@ -136,6 +137,7 @@ mod tests {
     #[test]
     fn kaputte_oder_fehlende_werte_ergeben_standard() {
         let e = Einstellungen::aus_text("ziel=ogg\nthema=bunt\nfenster=abc\nquatsch\n\n");
+        assert_eq!(Einstellungen::aus_text("fenster=NaNx600").fenster, None);
         assert_eq!(e, Einstellungen::default());
         assert_eq!(e.thema, Thema::System); // Standard: wie das Betriebssystem
     }

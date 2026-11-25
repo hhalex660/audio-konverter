@@ -14,6 +14,7 @@ flowchart LR
 | `clippy` | `[lints]` in `Cargo.toml` | Fehler, unnötiger Code; Gruppen `all` + `pedantic`; Zahlen-Casts erlaubt (Audio-Rechnung) | Hook |
 | `committed` | `committed.toml` | Commit-Text im Format `feat: …`, `fix: …` (Voraussetzung für semantic-release) | Hook (commit-msg) |
 | `cargo-deny` | `deny.toml` | Lizenzen (müssen zu GPL-3.0-or-later passen), bekannte Sicherheitslücken, fremde Quellen | von Hand, später CI |
+| Versionsprüfung | `scripts/check-release-version.py`, `tests/test_release_version.py` | Release-Tag (z. B. `v0.5.0`) passt zur Version in `Cargo.toml` | GitHub Actions bei Tag `v*`, Test bei jedem Lauf |
 
 ## Einrichten (Windows)
 

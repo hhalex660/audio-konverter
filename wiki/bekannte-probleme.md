@@ -15,5 +15,8 @@
 | Sprache gewechselt, alter Fehlertext bleibt | Fehlertexte entstehen beim Umwandeln und bleiben in der alten Sprache, bis die Datei neu umgewandelt wird |
 | Zielformat, Thema oder Fenstergröße werden nicht gemerkt | Sie werden beim normalen Beenden in `einstellungen.txt` (`%APPDATA%\audio-konverter`) gespeichert; nach einem Absturz oder Beenden über den Task-Manager fehlen die letzten Änderungen. Datei löschen setzt alles auf Standard |
 | Sprachwahl wird nicht gemerkt | Das Programm schreibt `sprache.txt` nach `%APPDATA%\audio-konverter`; ohne Schreibrecht gilt beim nächsten Start wieder die Systemsprache |
+| Ordner hat ein Cover, wird aber als „ohne Cover“ gezeigt | Versteckte Bilder (z. B. `Folder.jpg` vom Windows Media Player) und nicht lesbare Bilder werden ignoriert. Ein sichtbares Bild, z. B. `cover.jpg`, in den Ordner legen |
+| Datei mit kurzen Aussetzern, aber Status „fertig“ | Einzelne defekte Blöcke der Quelle werden übersprungen statt abzubrechen; Quelle in einem anderen Programm prüfen |
+| Ordner und sein Unterordner beide hinzugefügt: Entfernen des einen nimmt Dateien mit, die auch im anderen liegen | Jede Datei steht nur einmal in der Liste und gehört zum zuerst hinzugefügten Ordner. Ordner erneut hinzufügen |
 
 Bei Fehlern: Maus über das rote **Fehler** halten. Immer mit Kopien testen.

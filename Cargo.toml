@@ -1,6 +1,6 @@
 [package]
 name = "audio-konverter"
-version = "0.4.5"
+version = "0.5.0"
 edition = "2021"
 license = "GPL-3.0-or-later"
 authors = ["Alexander Singh"]
@@ -8,17 +8,20 @@ authors = ["Alexander Singh"]
 [dependencies]
 eframe = "0.29"                                              # GUI (egui)
 egui_extras = { version = "0.29", features = ["svg"] }       # SVG-Icons (Lucide)
-rfd = "0.15"                                                 # nativer Ordner- und Speichern-Dialog
-walkdir = "2"                                                # Unterordner durchsuchen
+rfd = "0.18"                                                 # nativer Ordner- und Speichern-Dialog
+walkdir = "2.5"                                               # Unterordner durchsuchen
 symphonia = { version = "0.5", default-features = false, features = ["flac", "wav", "aiff", "pcm"] } # Dateien lesen
 rubato = "0.16"                                              # Sample-Rate umrechnen
-mp3lame-encoder = "0.1"                                      # MP3 schreiben (LAME eingebaut, braucht beim Bauen einen C-Compiler)
-id3 = "1"                                                    # Tags und Cover (ID3v2)
+mp3lame-encoder = "0.3"                                      # MP3 schreiben (LAME eingebaut, braucht beim Bauen einen C-Compiler)
+id3 = "1.17"                                                   # Tags und Cover (ID3v2)
 image = { version = "0.25", default-features = false, features = ["jpeg", "png", "bmp"] } # Cover auf 700 x 700 verkleinern
 flacenc = { version = "0.5.1", default-features = false }   # FLAC schreiben (reines Rust)
 
 [build-dependencies]
 winres = "0.1"                                               # Icon in die Windows-.exe einbauen
+
+[dev-dependencies]
+tempfile = "3"                                                # eigener, löschbarer Ordner pro Test
 
 # Auch im Debug-Build sind die Bibliotheken optimiert. Für echte Umwandlungen
 # trotzdem `cargo run --release` verwenden (siehe wiki/bekannte-probleme.md).

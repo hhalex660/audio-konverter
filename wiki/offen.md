@@ -11,7 +11,10 @@ flowchart TD
 | Nr. | Punkt | Hinweis |
 |---|---|---|
 | 1 | Design-Punkte B aus `review.md`, die noch fehlen | Spalten sortieren und in der Breite ziehen, Suche/Filter, Ordner im Hintergrund durchsuchen |
-| 2 | Pull Request #1 prüfen: https://github.com/hhalex660/audio-konverter/pull/1 | Erst nach Release 0.4.4, nicht blind mergen. Punkte: (a) Kompilierfehler: `map_or_default` in `src/app.rs:112` und `src/scan.rs:19` ist auf stabilem Rust nicht verfügbar, stabil ersetzen durch `map(…).unwrap_or_default()`; (b) zu viel auf einmal: mise, cargo-packager, Universal-macOS und Release-Kette gehören zu Schritt 5 des Plans, nicht zu 0.4.4; (c) Abhängigkeiten `rfd` 0.15 → 0.18, `mp3lame-encoder` 0.1 → 0.3, `id3`, `walkdir` einzeln prüfen und MP3-Klang anhören; (d) Linux-Basis: PR setzt Ubuntu 24.04 (Mint 22) voraus, Plan sieht Mint 21 vor. Entscheiden; (e) Tests: Testordner werden nach dem Lauf gelöscht (vorher blieben sie zur Kontrolle). Übernehmen, wenn gewünscht; (f) MP3-Test zählt Nulldurchgänge in festem Bereich (345 bis 359), kann bei Encoder-Updates brechen |
+| 2 | Pull Request #1 (Senci): Rest | Teile sind übernommen (Erledigt 21 bis 23). Offen: (a) Antwort an Senci schicken, PR danach mit Kommentar schließen, bei Übernahme `Co-authored-by` nennen; (b) Linux- und macOS-Builds (`.deb`, `.dmg` mit `cargo-packager`) später, erst nach Entscheidung Mint 21 oder 22 |
+| 3 | `unsafe` in `mp3.rs` entfernen | `mp3lame-encoder` 0.3 hat `encode_to_vec` und `flush_to_vec`; MP3-Ausgabe vorher und nachher vergleichen (Dekodierung war bei der Aktualisierung 0,3 identisch) |
+| 4 | (optional) MP3-Pegel vor dem Encoder um 1 dB senken, gegen Übersteuerung bei sehr lauten Stücken. Nur bei hörbarer Verzerrung nötig (Messung: Ausschnitt „Lizard Brain“ 669 Samples auf Vollpegel, Vermont/Fragfest 0). Nachteil: MP3 etwas leiser als AIFF/FLAC | `mp3.rs`, `konverter.rs` |
+| 5 | (optional) LAME-Gapless-Header einbauen: MP3 beginnt und endet exakt wie die Quelle (aktuell ca. 25 ms Versatz am Anfang, 17 ms länger). Nur für millimetergenaue Cue-Punkte relevant. Mittlerer Aufwand, mit mehreren Playern testen | `mp3.rs` |
 
 ## Erledigt
 
@@ -37,6 +40,11 @@ flowchart TD
 | 18 | Einstellungen merken, Zielordner öffnen, Themenwahl (System, Hell, Dunkel), sanfte Übergänge | `einstellungen.rs`, `app.rs`, `gui.rs`, `texte.rs` |
 | 19 | Dateiliste mit Ordner-Kopfzeilen statt Streifen und Ordner-Spalte (gut sichtbar in Hell und Dunkel) | `app.rs`, `gui.rs`, `texte.rs` |
 | 20 | Programm-Icon (Schallplatte) in der Windows-`.exe` und im Fenster (Titelleiste, Taskleiste) | `build.rs`, `assets/icon.ico`, `assets/icon.png`, `main.rs`, `Cargo.toml` |
+| 21 | Release-Tag wird gegen die Version in `Cargo.toml` geprüft | `scripts/check-release-version.py`, `tests/test_release_version.py`, `windows.yml` |
+| 22 | Abhängigkeiten aktualisiert: `rfd` 0.18, `mp3lame-encoder` 0.3; Mindestversionen `walkdir` 2.5, `id3` 1.17 (MP3 vor und nach dem Update: gleiche Größe, 320 kbit/s, Dekodierung identisch) | `Cargo.toml`, `Cargo.lock` |
+| 23 | Test-Ordner mit `tempfile`: eigener Ordner pro Test, wird gelöscht | `konverter.rs`, `app.rs`, `Cargo.toml` |
+| 24 | Prüfung: Cover-Tests räumen ihre Testbilder auf | `tags.rs` |
+| 25 | Audit-Fixes: Absturz im Konverter löscht die halbfertige Zieldatei; nur lesbare Bilder werden Cover (MIME-Typ aus dem Inhalt); versteckte Dateien und Ordner werden übersprungen; ungültige Fenstergröße (`NaN`) wird ignoriert | `konverter.rs`, `tags.rs`, `scan.rs`, `einstellungen.rs` |
 
 Zu Punkt 6: `Cargo.toml` (Release mit `lto`, `codegen-units = 1`, `strip`), `.cargo/config.toml` (C-Laufzeit fest eingebaut, keine Visual-C++-Runtime nötig), `.github/workflows/windows.yml` (baut und testet auf GitHub, `.exe` als Download, bei Tag `v*` als Release). Im Sandbox-Test (Linux, 12 Dateien à 30 s, 96 kHz/24 Bit): AIFF 0,3 s, FLAC 0,8 s, MP3 2,3 s; alle 22 Tests grün. Die Windows-`.exe` wurde auf deinem PC gebaut und von dir als erledigt bestätigt.
 

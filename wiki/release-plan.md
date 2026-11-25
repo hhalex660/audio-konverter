@@ -67,7 +67,7 @@ Drei Stufen: schnell lokal, vollständig in der CI, regelmäßig für neue Siche
 - **Nicht übernommen (YAGNI):** Miri, Fuzzing, `cargo-geiger`, `cargo-semver-checks` (nur für Bibliotheken sinnvoll).
 
 Bekannte Funde vorab:
-- `src/mp3.rs` nutzt zweimal `unsafe { set_len }`. Geprüft: `mp3lame-encoder` 0.1.5 bietet keine sichere Variante, die Stellen tragen `SAFETY`-Kommentare.
+- `src/mp3.rs` nutzt zweimal `unsafe { set_len }`, die Stellen tragen `SAFETY`-Kommentare. `mp3lame-encoder` 0.3 bietet mit `encode_to_vec` und `flush_to_vec` eine sichere Variante, Umstellung steht in `offen.md`.
 - Lizenz: GPL-3.0-or-later, `LICENSE` und `license` in `Cargo.toml` sind angelegt (siehe `entscheidungen.md`). `cargo-deny` prüft später, dass alle Abhängigkeiten dazu passen.
 
 ## 4. Performance

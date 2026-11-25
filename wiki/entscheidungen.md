@@ -37,7 +37,13 @@
 | FLAC mit `flacenc` (reines Rust), Kopf selbst geschrieben | kein C-Compiler nötig; blockweises Schreiben spart Speicher, der Kopf wird am Ende mit Länge und MD5 neu geschrieben. Blockgröße min = max, damit Leser den Strom nicht für variabel halten |
 | Tags und Cover in FLAC als Vorbis-Kommentar und PICTURE-Block | Standard für FLAC; ID3 in FLAC wird von vielen Playern ignoriert |
 | Lizenz GPL-3.0-or-later | Copyleft für ein fertiges Programm; kompatibel mit LAME (LGPL) und den übrigen Bibliotheken (MIT, Apache-2.0, MPL-2.0). LGPL wäre für Bibliotheken, AGPL für Netzdienste |
-| `unsafe` nur in `mp3.rs` (`set_len`) | `mp3lame-encoder` bietet keine sichere Variante; Stellen mit `SAFETY`-Kommentar |
+| `unsafe` nur in `mp3.rs` (`set_len`) | mit `mp3lame-encoder` 0.1 gab es keine sichere Variante; seit 0.3 gibt es `encode_to_vec`, Umstellung offen; Stellen mit `SAFETY`-Kommentar |
+| Tests mit `tempfile` (eigener Ordner pro Test, danach gelöscht) | Tests stören sich nicht und hinterlassen nichts im Temp-Ordner; Idee aus PR #1 |
+| Release-Tag wird gegen `Cargo.toml` geprüft (Skript aus PR #1) | verhindert Release `v0.5.0` mit Version 0.4.5 im Programm |
+| Nicht aus PR #1 übernommen: MP3-Test mit Nulldurchgängen, `mise`, Zeitlimit im Test | Test bricht bei Encoder-Updates ohne echten Fehler; `mise` ist ein Zusatzwerkzeug ohne Bedarf; Zeitlimit unnötig |
+| Versteckte Dateien und Ordner überspringen | `._Titel.wav` (Mac) wären Fehler in der Liste und `._cover.jpg` das erste, kaputte Cover; unter Windows sonst Papierkorb und 75-px-Bilder vom Media Player. Nachteil: ein verstecktes `Folder.jpg` wird nicht mehr als Cover genutzt |
+| Nur lesbare Bilder als Cover | kaputte Bilddaten in jeder Datei können Player stören |
+| Dunkles Thema bleibt Standard-egui, Inky Pinky nicht übernommen | Vorschau gezeigt, gefiel nicht |
 | Alle Texte in `texte.rs`, Sprache global (`AtomicU8`) | Fehlertexte entstehen in Hintergrund-Threads und brauchen die Sprache ohne Weiterreichen |
 | Zielformat, Thema, Fenstergröße und Startordner in `einstellungen.txt` (Zeilen `schluessel=wert`), nur beim Beenden geschrieben | ohne Zusatzbibliothek, kein Schreiben bei jedem Klick; Tests berühren die Datei nicht. Beim Absturz gehen Änderungen verloren |
 | Thema „System“ ist der Standard | folgt dem Betriebssystem, Hell und Dunkel nur auf Wunsch |

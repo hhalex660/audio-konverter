@@ -6,6 +6,7 @@ use id3::frame::{Content, Picture, PictureType};
 use id3::{Frame, Tag, TagLike, Version};
 use image::codecs::jpeg::JpegEncoder;
 use image::imageops::FilterType;
+use image::ImageFormat;
 use std::path::Path;
 use symphonia::core::meta::{StandardTagKey as K, Tag as QuellTag};
 
@@ -31,12 +32,19 @@ fn feld(k: K) -> Option<(&'static str, &'static str)> {
 // sich im Windows Media Player nicht öffnen und blähen jede Datei auf.
 const COVER_MAX: u32 = 700;
 
-// Bild größer als 700 x 700: auf 700 verkleinern (Seitenverhältnis bleibt) und als JPEG
-// speichern. None = Bild bleibt unverändert (klein genug oder nicht lesbar).
-fn verkleinert(daten: &[u8]) -> Option<Vec<u8>> {
-    let bild = image::load_from_memory(daten).ok()?;
+// Bild laden: (MIME-Typ, Bytes). Nicht lesbare Bilder werden kein Cover (sonst landen z. B.
+// kaputte oder versteckte Dateien in jedem Track). Größer als 700 x 700: auf 700 verkleinern
+// (Seitenverhältnis bleibt) und als JPEG speichern.
+fn bild_laden(pfad: &Path) -> Option<(&'static str, Vec<u8>)> {
+    let daten = std::fs::read(pfad).ok()?;
+    let bild = image::load_from_memory(&daten).ok()?;
     if bild.width() <= COVER_MAX && bild.height() <= COVER_MAX {
-        return None;
+        let mime = match image::guess_format(&daten).ok()? {
+            ImageFormat::Png => "image/png",
+            ImageFormat::Bmp => "image/bmp",
+            _ => "image/jpeg",
+        };
+        return Some((mime, daten));
     }
     let klein = bild
         .resize(COVER_MAX, COVER_MAX, FilterType::Lanczos3)
@@ -45,23 +53,7 @@ fn verkleinert(daten: &[u8]) -> Option<Vec<u8>> {
     JpegEncoder::new_with_quality(&mut jpeg, 90)
         .encode_image(&klein)
         .ok()?;
-    Some(jpeg)
-}
-
-// Bild laden: (MIME-Typ, Bytes), bei Bedarf auf 700 x 700 verkleinert
-fn bild_laden(pfad: &Path) -> Option<(&'static str, Vec<u8>)> {
-    let daten = std::fs::read(pfad).ok()?;
-    let mime = match pfad
-        .extension()
-        .and_then(|e| e.to_str())
-        .map(str::to_lowercase)
-        .as_deref()
-    {
-        Some("png") => "image/png",
-        Some("bmp") => "image/bmp",
-        _ => "image/jpeg",
-    };
-    Some(verkleinert(&daten).map_or((mime, daten), |jpeg| ("image/jpeg", jpeg)))
+    Some(("image/jpeg", jpeg))
 }
 
 // Fertigen ID3-Tag als Bytes erzeugen. Leer, wenn es nichts zu schreiben gibt.
@@ -146,6 +138,7 @@ pub fn flac_bloecke(quelle: &[QuellTag], bild: Option<&Path>) -> Vec<(u8, Vec<u8
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::konverter::tests::{ordner, Testordner};
     use symphonia::core::meta::Value;
 
     #[test]
@@ -167,20 +160,21 @@ mod tests {
         assert_eq!(flac_bloecke(&[], None).len(), 0);
     }
 
-    // Testbild als Datei im Temp-Verzeichnis
-    fn testbild(name: &str, b: u32, h: u32) -> std::path::PathBuf {
-        let pfad = std::env::temp_dir().join(format!("ak-cover-{name}"));
+    // Testbild als Datei in einem eigenen Testordner (wird danach gelöscht)
+    fn testbild(name: &str, b: u32, h: u32) -> (Testordner, std::path::PathBuf) {
+        let o = ordner("cover");
+        let pfad = o.join(name);
         image::RgbImage::from_fn(b, h, |x, y| {
             image::Rgb([(x % 256) as u8, (y % 256) as u8, 90])
         })
         .save(&pfad)
         .unwrap();
-        pfad
+        (o, pfad)
     }
 
     #[test]
     fn grosses_cover_wird_auf_700_verkleinert() {
-        let pfad = testbild("gross.png", 1400, 1000);
+        let (_o, pfad) = testbild("gross.png", 1400, 1000);
         let (mime, daten) = bild_laden(&pfad).unwrap();
         let bild = image::load_from_memory(&daten).unwrap();
         assert_eq!(mime, "image/jpeg");
@@ -188,8 +182,25 @@ mod tests {
     }
 
     #[test]
+    fn kaputtes_bild_wird_kein_cover() {
+        let o = ordner("kaputt");
+        let pfad = o.join("._cover.jpg"); // z. B. Begleitdatei vom Mac
+        std::fs::write(&pfad, b"\xFF\xD8\xFF\xE0 kein echtes Bild").unwrap();
+        assert!(bild_laden(&pfad).is_none());
+        assert_eq!(erzeuge(&[], Some(&pfad)).len(), 0);
+    }
+
+    #[test]
+    fn png_mit_falscher_endung_wird_als_png_erkannt() {
+        let (_o, pfad) = testbild("cover.png", 50, 50);
+        let falsch = pfad.with_extension("jpg");
+        std::fs::rename(&pfad, &falsch).unwrap();
+        assert_eq!(bild_laden(&falsch).unwrap().0, "image/png");
+    }
+
+    #[test]
     fn kleines_cover_bleibt_unveraendert() {
-        let pfad = testbild("klein.jpg", 600, 600);
+        let (_o, pfad) = testbild("klein.jpg", 600, 600);
         let (mime, daten) = bild_laden(&pfad).unwrap();
         assert_eq!(mime, "image/jpeg");
         assert_eq!(daten, std::fs::read(&pfad).unwrap());

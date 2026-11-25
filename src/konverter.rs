@@ -264,7 +264,12 @@ pub fn wandle(
             ErrorKind::AlreadyExists => t().zieldatei_existiert.to_string(),
             _ => format!("{}: {e}", t().zieldatei_nicht_anlegbar),
         })?;
-    let ergebnis = lauf(quelle, datei, ziel, cover, abbruch);
+    // Auch ein Absturz (panic) in den Bibliotheken zählt als Fehler, damit die Datei unten
+    // gelöscht wird und nicht halbfertig liegen bleibt
+    let ergebnis = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        lauf(quelle, datei, ziel, cover, abbruch)
+    }))
+    .unwrap_or_else(|_| Err(t().interner_fehler.into()));
     if ergebnis.is_err() {
         // Nur die eben selbst angelegte, halbfertige Datei löschen
         let _ = std::fs::remove_file(ziel_pfad);
@@ -438,14 +443,42 @@ pub(crate) mod tests {
     use super::*;
     use std::path::PathBuf;
 
-    // Testordner im Temp-Verzeichnis (bleibt zur Kontrolle liegen)
-    pub fn ordner(name: &str) -> PathBuf {
-        let o = std::env::temp_dir()
-            .join("audio-konverter-tests")
-            .join(name);
-        let _ = std::fs::remove_dir_all(&o);
-        std::fs::create_dir_all(&o).unwrap();
-        o
+    // Eigener Ordner pro Test (Unterordner `name` in einem Temp-Ordner); wird beim Verlassen gelöscht
+    pub struct Testordner {
+        _temp: tempfile::TempDir,
+        pfad: PathBuf,
+    }
+
+    impl std::ops::Deref for Testordner {
+        type Target = Path;
+
+        fn deref(&self) -> &Path {
+            &self.pfad
+        }
+    }
+
+    pub fn ordner(name: &str) -> Testordner {
+        let temp = tempfile::tempdir().unwrap();
+        let pfad = temp.path().join(name);
+        std::fs::create_dir_all(&pfad).unwrap();
+        Testordner { _temp: temp, pfad }
+    }
+
+    #[test]
+    fn testordner_sind_getrennt_und_werden_geloescht() {
+        let (erster, zweiter) = (ordner("gleich"), ordner("gleich"));
+        assert_ne!(*erster, *zweiter);
+        let pfad = erster.to_path_buf();
+        drop(erster);
+        assert!(!pfad.exists());
+        assert!(zweiter.exists());
+    }
+
+    // Kleines, gültiges Bild (Format nach Endung)
+    fn echtes_bild(pfad: &Path) {
+        image::RgbImage::from_pixel(8, 8, image::Rgb([200, 80, 120]))
+            .save(pfad)
+            .unwrap();
     }
 
     // Einfache PCM-WAV-Datei schreiben: Sinus 440 Hz, Stereo
@@ -575,7 +608,7 @@ pub(crate) mod tests {
         let quelle = o.join("a.wav");
         wav(&quelle, 44_100, 16, 0.1);
         let bild = o.join("cover.jpg");
-        std::fs::write(&bild, b"\xFF\xD8\xFF\xE0 kein echtes Bild").unwrap();
+        echtes_bild(&bild);
         wandle(
             &quelle,
             &o.join("a.aiff"),
@@ -595,7 +628,7 @@ pub(crate) mod tests {
         let quelle = o.join("a.wav");
         wav(&quelle, 44_100, 16, 0.1);
         let bild = o.join("cover.jpg");
-        std::fs::write(&bild, b"\xFF\xD8\xFF\xE0 kein echtes Bild").unwrap();
+        echtes_bild(&bild);
         wandle(
             &quelle,
             &o.join("a.mp3"),
@@ -707,7 +740,7 @@ pub(crate) mod tests {
         let quelle = o.join("a.wav");
         let original = wav(&quelle, 44_100, 16, 0.2);
         let bild = o.join("cover.png");
-        std::fs::write(&bild, b"\x89PNG kein echtes Bild").unwrap();
+        echtes_bild(&bild);
         wandle(
             &quelle,
             &o.join("a.flac"),

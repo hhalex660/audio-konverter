@@ -11,10 +11,11 @@ flowchart TD
 | Nr. | Punkt | Hinweis |
 |---|---|---|
 | 1 | Design-Punkte B aus `review.md`, die noch fehlen | Spalten sortieren und in der Breite ziehen, Suche/Filter, Ordner im Hintergrund durchsuchen |
-| 2 | Pull Request #1 (Senci): Rest | Teile sind übernommen (Erledigt 21 bis 23). Offen: (a) Antwort an Senci schicken, PR danach mit Kommentar schließen, bei Übernahme `Co-authored-by` nennen; (b) Linux- und macOS-Builds (`.deb`, `.dmg` mit `cargo-packager`) später, erst nach Entscheidung Mint 21 oder 22 |
-| 3 | `unsafe` in `mp3.rs` entfernen | `mp3lame-encoder` 0.3 hat `encode_to_vec` und `flush_to_vec`; MP3-Ausgabe vorher und nachher vergleichen (Dekodierung war bei der Aktualisierung 0,3 identisch) |
-| 4 | (optional) MP3-Pegel vor dem Encoder um 1 dB senken, gegen Übersteuerung bei sehr lauten Stücken. Nur bei hörbarer Verzerrung nötig (Messung: Ausschnitt „Lizard Brain“ 669 Samples auf Vollpegel, Vermont/Fragfest 0). Nachteil: MP3 etwas leiser als AIFF/FLAC | `mp3.rs`, `konverter.rs` |
-| 5 | (optional) LAME-Gapless-Header einbauen: MP3 beginnt und endet exakt wie die Quelle (aktuell ca. 25 ms Versatz am Anfang, 17 ms länger). Nur für millimetergenaue Cue-Punkte relevant. Mittlerer Aufwand, mit mehreren Playern testen | `mp3.rs` |
+| 2 | Linux-Build für Linux Mint: zuerst Entscheidung Mint 21 oder 22, dann `.deb` mit `cargo-packager` über GitHub Actions. Im PR #1 gibt es dafür einen Vorschlag (`mise.toml`, Workflow), den wir nicht 1:1 übernehmen | `windows.yml` (neuer Workflow), `Cargo.toml` |
+| 3 | macOS-Build: `.dmg` mit `cargo-packager` (Universal-Build), über GitHub Actions. Erst nach Linux-Build | `windows.yml` (neuer Workflow), `Cargo.toml` |
+| 4 | `unsafe` in `mp3.rs` entfernen | `mp3lame-encoder` 0.3 hat `encode_to_vec` und `flush_to_vec`; MP3-Ausgabe vorher und nachher vergleichen (Dekodierung war bei der Aktualisierung 0,3 identisch) |
+| 5 | (optional) MP3-Pegel vor dem Encoder um 1 dB senken, gegen Übersteuerung bei sehr lauten Stücken. Nur bei hörbarer Verzerrung nötig (Messung: Ausschnitt „Lizard Brain“ 669 Samples auf Vollpegel, Vermont/Fragfest 0). Nachteil: MP3 etwas leiser als AIFF/FLAC | `mp3.rs`, `konverter.rs` |
+| 6 | (optional) LAME-Gapless-Header einbauen: MP3 beginnt und endet exakt wie die Quelle (aktuell ca. 25 ms Versatz am Anfang, 17 ms länger). Nur für millimetergenaue Cue-Punkte relevant. Mittlerer Aufwand, mit mehreren Playern testen | `mp3.rs` |
 
 ## Erledigt
 
@@ -45,6 +46,7 @@ flowchart TD
 | 23 | Test-Ordner mit `tempfile`: eigener Ordner pro Test, wird gelöscht | `konverter.rs`, `app.rs`, `Cargo.toml` |
 | 24 | Prüfung: Cover-Tests räumen ihre Testbilder auf | `tags.rs` |
 | 25 | Audit-Fixes: Absturz im Konverter löscht die halbfertige Zieldatei; nur lesbare Bilder werden Cover (MIME-Typ aus dem Inhalt); versteckte Dateien und Ordner werden übersprungen; ungültige Fenstergröße (`NaN`) wird ignoriert | `konverter.rs`, `tags.rs`, `scan.rs`, `einstellungen.rs` |
+| 26 | PR #1 (Senci) geschlossen, nicht gemergt. Übernommen: Versionsprüfung (Skript und Test unverändert), Abhängigkeiten, Test-Ordner mit `tempfile`. Senci im Kommentar am PR genannt, Gutschrift in den Release-Notizen. Nicht übernommen: MP3-Nulldurchgangstest, `mise` (vorerst), Zeitlimit im Test | `scripts/`, `tests/`, `Cargo.toml`, `windows.yml` |
 
 Zu Punkt 6: `Cargo.toml` (Release mit `lto`, `codegen-units = 1`, `strip`), `.cargo/config.toml` (C-Laufzeit fest eingebaut, keine Visual-C++-Runtime nötig), `.github/workflows/windows.yml` (baut und testet auf GitHub, `.exe` als Download, bei Tag `v*` als Release). Im Sandbox-Test (Linux, 12 Dateien à 30 s, 96 kHz/24 Bit): AIFF 0,3 s, FLAC 0,8 s, MP3 2,3 s; alle 22 Tests grün. Die Windows-`.exe` wurde auf deinem PC gebaut und von dir als erledigt bestätigt.
 
